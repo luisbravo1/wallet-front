@@ -21,7 +21,7 @@
                   <v-select
                     v-model="newRecord.accountId"
                     :items="accounts"
-                    :rules="[() => newRecord.accountId.length > 1 || 'Select an account']"
+                    :rules="[() => newRecord.accountId.length > 0 || 'Select an account']"
                     item-text="name"
                     item-value="id"
                     label="Account"
@@ -95,7 +95,7 @@
                     <v-date-picker v-model="newRecord.date" @input="menu = false"></v-date-picker>
                   </v-menu>
                 </v-flex>
-                <v-flex xs12 px-12 pb-4>
+                <v-flex xs12 px-12 pb-4 v-if="!isEdit">
                   <v-btn
                     :disabled="!valid"
                     :loading="isSending"
@@ -106,8 +106,32 @@
                   <center
                     v-if="!isSending && success"
                     class="pt-8 green--text"
-                  >Record Added!</center>
+                  >{{ serverMessage }}</center>
                 </v-flex>
+                <v-layout row wrap justify-center v-else>
+                  <v-flex xs6 px-3 pb-4>
+                    <v-btn
+                      :disabled="!valid"
+                      :loading="isSending"
+                      color="primary"
+                      block
+                      @click="editRecord"
+                    >Update Account</v-btn>
+                  </v-flex>
+                  <v-flex xs6 px-3 pb-4>
+                    <v-btn
+                      :disabled="!valid"
+                      :loading="isSending"
+                      color="error"
+                      block
+                      @click="deleteRecord"
+                    >Delete Account</v-btn>
+                  </v-flex>
+                  <center
+                    v-if="!isSending && success"
+                    class="pt-4 green--text"
+                  >{{ serverMessage }}</center>
+                </v-layout>
               </v-layout>
             </v-flex>
             <v-flex xs4 pl-2 pr-4 style="background-color: #F4F5F4">
@@ -149,11 +173,9 @@
 
 export default {
   name: 'Dashboard',
-  components: {
-  },
+  props: ['record'],
   data: () => ({
     user: '',
-    date: ['2020-05-22', '2020-05-29'],
     menu: false,
     modal: false,
     datePicker: false,
@@ -161,6 +183,10 @@ export default {
     valid: false,
     isSending: false,
     success: false,
+    isEdit: false,
+    ogAmount: 0,
+    ogType: '',
+    serverMessage: '',
     categories: ['Food & Drinks', 'Shopping', 'Housing', 'Transportation', 'Vehicle', 'Entertainment', 'Financial', 'Others'],
     accounts: [],
     newRecord: {
@@ -198,10 +224,12 @@ export default {
         console.log('success')
         this.isSending = false
         this.success = true
+        this.serverMessage = 'Record Added!'
       }, response => {
         console.log('error')
         this.isSending = false
         this.success = true
+        this.serverMessage = 'Error'
       })
     },
     addCategory () {
@@ -239,6 +267,54 @@ export default {
           this.newRecord.color = '#b0b0b0'
           break
       }
+    },
+    editRecord () {
+      console.log(this.newRecord, this.valid)
+      if (this.ogAmount === this.newRecord.amount) {
+        this.ogAmount = 0
+      }
+      if (this.newRecord.type === 'Expense') {
+        this.newRecord.amount = this.newRecord.amount * -1
+      }
+      this.isSending = true
+      var options = {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + this.$cookies.get('authToken')
+        }
+      }
+      this.$http.put('records/' + this.newRecord.id + '/' + this.ogType + '/' + this.ogAmount, this.newRecord, options).then(response => {
+        console.log('success')
+        this.isSending = false
+        this.success = true
+        this.serverMessage = 'Record Updated!'
+      }, response => {
+        console.log('error')
+        this.isSending = false
+        this.success = true
+        this.serverMessage = 'Error'
+      })
+    },
+    deleteRecord () {
+      console.log(this.newRecord, this.valid)
+      this.isSending = true
+      var options = {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + this.$cookies.get('authToken')
+        }
+      }
+      this.$http.delete('records/' + this.newRecord.id, options).then(response => {
+        console.log('success')
+        this.isSending = false
+        this.success = true
+        this.serverMessage = 'Record Deleted!'
+      }, response => {
+        console.log('error')
+        this.isSending = false
+        this.success = true
+        this.serverMessage = 'Error'
+      })
     },
     getAccounts () {
       this.isLoading = true
@@ -279,6 +355,36 @@ export default {
       this.getMe()
     }
     this.getAccounts()
+    if (this.record !== null) {
+      console.log(this.record)
+      this.newRecord = this.record
+      this.newRecord.accountId = ''
+      this.newRecord.date = this.newRecord.date.substr(0, 10)
+      if (this.newRecord.type === 'Expense') {
+        this.newRecord.amount = this.newRecord.amount * -1
+      }
+      this.ogAmount = this.record.amount
+      this.ogType = this.record.type
+      this.isEdit = true
+    } else {
+      this.newRecord = {
+        accountId: '',
+        type: 'Expense',
+        amount: 0,
+        currency: 'MXN',
+        category: '',
+        icon: '',
+        color: '',
+        date: new Date().toISOString().substr(0, 10),
+        notes: '',
+        place: '',
+        paymentType: '',
+        labels: []
+      }
+      this.ogAmount = 0
+      this.ogType = ''
+      this.isEdit = false
+    }
   }
 }
 </script>

@@ -68,7 +68,7 @@
                 required
               ></v-select>
             </v-flex>
-            <v-flex xs12 px-12 pb-4>
+            <v-flex xs12 px-12 pb-4 v-if="!isEdit">
               <v-btn
                 :disabled="!valid"
                 :loading="isSending"
@@ -79,8 +79,32 @@
               <center
                 v-if="!isSending && success"
                 class="pt-8 green--text"
-              >Account Created!</center>
+              >{{ serverMessage }}</center>
             </v-flex>
+            <v-layout row wrap justify-center v-else>
+              <v-flex xs6 px-3 pb-4>
+                <v-btn
+                  :disabled="!valid"
+                  :loading="isSending"
+                  color="primary"
+                  block
+                  @click="editAccount"
+                >Update Account</v-btn>
+              </v-flex>
+              <v-flex xs6 px-3 pb-4>
+                <v-btn
+                  :disabled="!valid"
+                  :loading="isSending"
+                  color="error"
+                  block
+                  @click="deleteAccount"
+                >Delete Account</v-btn>
+              </v-flex>
+              <center
+                v-if="!isSending && success"
+                class="pt-4 green--text"
+              >{{ serverMessage }}</center>
+            </v-layout>
           </v-layout>
         </v-form>
       </v-card>
@@ -92,8 +116,7 @@
 
 export default {
   name: 'Dashboard',
-  components: {
-  },
+  props: ['account'],
   data: () => ({
     user: '',
     dialog: true,
@@ -101,7 +124,10 @@ export default {
     menu: false,
     isSending: false,
     success: false,
-    currency: ['DLLS', 'MXN'],
+    isEdit: false,
+    ogStartingAmount: 0,
+    serverMessage: '',
+    currency: ['MXN'],
     accountTypes: ['Cash', 'Debit Card', 'Credit Card', 'Savings'],
     newAccount: {
       name: '',
@@ -126,10 +152,59 @@ export default {
         console.log('success')
         this.isSending = false
         this.success = true
+        this.serverMessage = 'Account Created!'
       }, response => {
         console.log('error')
         this.isSending = false
         this.success = true
+        this.serverMessage = 'Error'
+      })
+    },
+    editAccount () {
+      if (this.newAccount.startingAmount > this.ogStartingAmount) {
+        this.newAccount.balance += (this.newAccount.startingAmount - this.ogStartingAmount)
+      } else if (this.newAccount.startingAmount < this.ogStartingAmount) {
+        this.newAccount.balance -= (this.ogStartingAmount - this.newAccount.startingAmount)
+      }
+      console.log(this.newAccount, this.valid)
+      this.isSending = true
+      var options = {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + this.$cookies.get('authToken')
+        }
+      }
+      this.$http.put('accounts/' + this.newAccount.id, this.newAccount, options).then(response => {
+        console.log('success')
+        this.isSending = false
+        this.success = true
+        this.serverMessage = 'Account Updated!'
+      }, response => {
+        console.log('error')
+        this.isSending = false
+        this.success = true
+        this.serverMessage = 'Error'
+      })
+    },
+    deleteAccount () {
+      console.log(this.newAccount, this.valid)
+      this.isSending = true
+      var options = {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + this.$cookies.get('authToken')
+        }
+      }
+      this.$http.delete('accounts/' + this.newAccount.id, options).then(response => {
+        console.log('success')
+        this.isSending = false
+        this.success = true
+        this.serverMessage = 'Account Deleted!'
+      }, response => {
+        console.log('error')
+        this.isSending = false
+        this.success = true
+        this.serverMessage = 'Error'
       })
     },
     getMe () {
@@ -152,6 +227,21 @@ export default {
       this.user = JSON.parse(window.localStorage.user)
     } else {
       this.getMe()
+    }
+    if (this.account !== null) {
+      this.newAccount = this.account
+      this.ogStartingAmount = this.account.startingAmount
+      this.isEdit = true
+    } else {
+      this.newAccount = {
+        name: '',
+        color: '',
+        accountType: '',
+        startingAmount: 0,
+        currency: ''
+      }
+      this.ogStartingAmount = 0
+      this.isEdit = false
     }
   }
 }

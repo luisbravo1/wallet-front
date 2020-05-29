@@ -3,7 +3,7 @@
     <v-container fluid py-0>
       <!-- Date Picker -->
       <v-layout row wrap justify-center style="background-color: #f5f5f5">
-        <v-flex xs2 pt-6>
+        <v-flex xs8 sm4 md2 pt-6>
           <v-dialog
             ref="dialog"
             v-model="modal"
@@ -29,23 +29,23 @@
         </v-flex>
       </v-layout>
 
-      <v-layout row wrap justify-space-around style="background-color: #f5f5f5">
+      <v-layout row wrap style="background-color: #f5f5f5">
         <!-- Filters -->
-        <v-flex xs12 md3 pl-12 pr-2 pt-2 pb-8>
+        <v-flex xs12 md3 :class="[windowSize < 2 ? 'px-8 py-4' : 'pl-12 pr-2 pt-2 pb-8']">
           <v-card
             class="mx-auto"
             outlined
           >
             <v-card-title>Records</v-card-title>
-            <div class="px-4 py-2">
+            <div class="px-4 py-2 pb-10">
               <v-btn
                 color="primary"
                 block
                 depressed
-                @click="addRecordDialog = true"
+                @click="addRecord()"
               >+ Add</v-btn>
             </div>
-            <div class="px-4 pt-4">
+            <!-- <div class="px-4 pt-4">
               <v-text-field
                 label="Search"
                 prepend-inner-icon="search"
@@ -54,7 +54,7 @@
                 dense
               >
               </v-text-field>
-            </div>
+            </div> -->
             <v-divider></v-divider>
             <v-card-title>Filters</v-card-title>
             <div class="px-4 pb-8">
@@ -82,7 +82,7 @@
           </v-card>
         </v-flex>
         <!-- Records -->
-        <v-flex xs12 md9 pr-12 pl-2 pt-2 pb-8>
+        <v-flex xs12 md9 :class="[windowSize < 2 ? 'px-8 py-4' : 'pr-12 pl-2 pt-2 pb-8']">
           <v-card
             class="mx-auto"
             outlined
@@ -99,7 +99,7 @@
             <v-list v-if="records.length > 0" two-line flat>
               <v-list-item-group multiple>
                 <template v-for="(record, index) in filteredRecords">
-                  <v-list-item :key="record.id">
+                  <v-list-item :key="record.id" @click="editRecord(record)">
                     <v-list-item-action>
                       <v-checkbox
                         v-model="selectedRecords"
@@ -138,7 +138,7 @@
     <!-- addRecord -->
     <v-dialog v-model="addRecordDialog" max-width="850px">
       <v-card v-if="addRecordDialog">
-        <addRecord></addRecord>
+        <addRecord :record="record"></addRecord>
       </v-card>
     </v-dialog>
   </div>
@@ -154,27 +154,24 @@ export default {
     addRecord
   },
   data: () => ({
-    date: ['2020-05-22', '2020-05-29'],
+    date: ['2020-04-30', '2020-05-30'],
     addRecordDialog: false,
     menu: false,
     modal: false,
     income: 12098.44,
     expense: -6020.20,
     balance: 6400.20,
+    record: null,
     selectedRecords: [],
     selectedFilters: [],
     filters: [
       {
         name: 'ACCOUNTS',
-        items: ['Cash', 'Debit Card', 'Dollars']
+        items: []
       },
       {
         name: 'CATEGORIES',
         items: ['Food & Drinks', 'Shopping', 'Housing', 'Transportation', 'Vehicle', 'Entertainment', 'Financial', 'Others']
-      },
-      {
-        name: 'CURRENCIES',
-        items: ['USD', 'MXN']
       },
       {
         name: 'RECORD TYPES',
@@ -199,9 +196,27 @@ export default {
         totalBalance += record.amount
       })
       return totalBalance
+    },
+    windowSize () {
+      switch (this.$vuetify.breakpoint.name) {
+        case 'xs': return 0
+        case 'sm': return 1
+        case 'md': return 2
+        case 'lg': return 3
+        case 'xl': return 4
+        default: return 0
+      }
     }
   },
   methods: {
+    addRecord () {
+      this.record = null
+      this.addRecordDialog = true
+    },
+    editRecord (record) {
+      this.record = record
+      this.addRecordDialog = true
+    },
     setDate () {
       this.date[0] = moment().subtract(30, 'days').format('YYYY-MM-DD')
       this.date[1] = moment().format('YYYY-MM-DD')
@@ -272,6 +287,29 @@ export default {
         this.isLoading = false
       })
     },
+    getAccounts () {
+      this.isLoading = true
+      var options = {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + this.$cookies.get('authToken')
+        }
+      }
+      this.$http.get('accounts/me/' + this.user.id, options).then(response => {
+        if (response.data.length < 2) {
+          this.filters[0].items.push(response.data[0].name)
+        } else {
+          response.data.forEach(account => {
+            this.filters[0].items.push(account.name)
+          })
+        }
+        console.log('success', response.data)
+        this.isLoading = false
+      }, response => {
+        console.log('error')
+        this.isLoading = false
+      })
+    },
     getMe () {
       this.isSending = true
       var options = {
@@ -295,6 +333,7 @@ export default {
     }
     this.getRecords()
     this.setDate()
+    this.getAccounts()
   }
 }
 </script>

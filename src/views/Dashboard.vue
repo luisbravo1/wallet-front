@@ -38,7 +38,7 @@
     <v-container fluid py-0>
       <!-- Date Picker -->
       <v-layout row wrap justify-center style="background-color: #f5f5f5">
-        <v-flex xs2 pt-6>
+        <v-flex xs8 sm4 md2 pt-6>
           <v-dialog
             ref="dialog"
             v-model="modal"
@@ -66,8 +66,9 @@
       <!-- Dashboards -->
       <v-layout row wrap justify-space-around style="background-color: #f5f5f5">
         <!-- Pie Chart -->
-        <v-flex xs12 md4 px-8 pt-2 pb-8>
+        <v-flex xs12 md6 px-8 pt-2 pb-8>
           <v-card
+            v-if="!isLoadingPie"
             class="mx-auto"
             outlined
           >
@@ -80,7 +81,7 @@
         </v-flex>
 
         <!-- Line Chart -->
-        <v-flex xs12 md4 px-8 pt-2 pb-8>
+        <!-- <v-flex xs12 md4 px-8 pt-2 pb-8>
           <v-card
             class="mx-auto"
             outlined
@@ -91,11 +92,12 @@
               <apexchart type="area" height="250" :options="chartOptions" :series="series"></apexchart>
             </div>
           </v-card>
-        </v-flex>
+        </v-flex> -->
 
         <!-- Radial Chart -->
-        <v-flex xs12 md4 px-8 pt-2 pb-8>
+        <v-flex xs12 md6 px-8 pt-2 pb-8>
           <v-card
+            v-if="!isLoadingRadial"
             class="mx-auto"
             outlined
           >
@@ -108,7 +110,7 @@
         </v-flex>
 
         <!-- Last Records -->
-        <v-flex xs12 md4 px-8 pt-2 pb-8>
+        <v-flex xs12 md6 px-8 pt-2 pb-8>
           <v-card
             class="mx-auto"
             outlined
@@ -146,7 +148,7 @@
         </v-flex>
 
         <!-- Cash Flow -->
-        <v-flex xs12 md4 px-8 pt-2 pb-8>
+        <v-flex xs12 md6 px-8 pt-2 pb-8>
           <v-card
             class="mx-auto"
             outlined
@@ -162,7 +164,7 @@
               <span>Income</span>
               <span style="float: right; padding-bottom: 6px">${{ income }}</span>
               <v-progress-linear
-                v-model="income"
+                v-model="incomePercent"
                 color="green"
                 height="30"
                 rounded
@@ -172,7 +174,7 @@
               <span>Expense</span>
               <span style="float: right; padding-bottom: 6px">- ${{ expense }}</span>
               <v-progress-linear
-                v-model="expense"
+                v-model="expensePercent"
                 color="red"
                 height="30"
                 rounded
@@ -205,10 +207,14 @@ export default {
     date: ['2020-05-22', '2020-05-29'],
     menu: false,
     modal: false,
-    income: 12098.44,
-    expense: -6020.20,
-    balance: 6400.20,
+    income: 0,
+    incomePercent: 0,
+    expense: 0,
+    expensePercent: 0,
+    balance: 0,
     addAccountDialog: false,
+    isLoadingPie: true,
+    isLoadingRadial: true,
     accounts: [],
     series: [{
       name: 'Desktops',
@@ -238,11 +244,12 @@ export default {
         categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep']
       }
     },
-    seriesPie: [44, 55, 41, 17, 15],
+    seriesPie: [0, 0, 0, 0, 0, 0, 0, 0],
     chartOptionsPie: {
       chart: {
         type: 'donut'
       },
+      labels: ['Food & Drinks', 'Shopping', 'Housing', 'Transportation', 'Vehicle', 'Entertainment', 'Financial', 'Others'],
       responsive: [{
         breakpoint: 480,
         options: {
@@ -255,7 +262,7 @@ export default {
         }
       }]
     },
-    seriesRadial: [67],
+    seriesRadial: [],
     chartOptionsRadial: {
       chart: {
         height: 350,
@@ -297,7 +304,7 @@ export default {
       stroke: {
         dashArray: 4
       },
-      labels: ['Median Ratio']
+      labels: ['Expense Ratio']
     },
     selected: [2],
     records: []
@@ -312,6 +319,60 @@ export default {
       console.log(this.accounts)
       account.active = false
     },
+    pieChartData (records) {
+      records.forEach(record => {
+        if (record.type === 'Expense') {
+          console.log(record)
+          switch (record.category) {
+            case 'Food & Drinks':
+              this.seriesPie[0] += (record.amount * -1)
+              break
+            case 'Shopping':
+              this.seriesPie[1] += (record.amount * -1)
+              break
+            case 'Housing':
+              this.seriesPie[2] += (record.amount * -1)
+              break
+            case 'Transportation':
+              this.seriesPie[3] += (record.amount * -1)
+              break
+            case 'Vehicle':
+              this.seriesPie[4] += (record.amount * -1)
+              break
+            case 'Entertainment':
+              this.seriesPie[5] += (record.amount * -1)
+              break
+            case 'Financial':
+              this.seriesPie[6] += (record.amount * -1)
+              break
+            case 'Others':
+              this.seriesPie[7] += (record.amount * -1)
+              break
+          }
+        }
+      })
+      this.isLoadingPie = false
+    },
+    cashFlowData (records) {
+      records.forEach(record => {
+        if (record.type === 'Expense') {
+          this.expense += (record.amount * -1)
+        } else {
+          this.income += record.amount
+        }
+      })
+      if (this.income > this.expense) {
+        this.incomePercent = 100
+        this.expensePercent = (this.expense * 100) / this.income
+        this.seriesRadial[0] = Math.round(this.expensePercent)
+      } else {
+        this.incomePercent = (this.income * 100) / this.expense
+        this.expensePercent = 100
+        this.seriesRadial[0] = 100
+      }
+      this.balance = this.income - this.expense
+      this.isLoadingRadial = false
+    },
     getAccounts () {
       this.isLoading = true
       var options = {
@@ -322,7 +383,7 @@ export default {
       }
       this.$http.get('accounts/me/' + this.user.id, options).then(response => {
         this.accounts = response.data
-        console.log('success', response.data)
+        // console.log('success', response.data)
         this.isLoading = false
       }, response => {
         console.log('error')
@@ -338,12 +399,18 @@ export default {
         }
       }
       this.$http.get('records/me/' + this.user.id, options).then(response => {
-        for (let i = 0; i < 4; i++) {
-          this.records.push(response.data[i])
+        if (response.data.length > 4) {
+          for (let i = 0; i < 4; i++) {
+            this.records.push(response.data[i])
+          }
+        } else {
+          this.records = response.data
         }
+        this.pieChartData(response.data)
+        this.cashFlowData(response.data)
         // this.filteredRecords = response.data
         // this.dateRangeFilter()
-        console.log('success', response.data)
+        // console.log('success', response.data)
         this.isLoading = false
       }, response => {
         console.log('error')

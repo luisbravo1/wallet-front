@@ -2,7 +2,7 @@
   <div>
     <v-container fluid py-0>
       <!-- Date Picker -->
-      <v-layout row wrap justify-center style="background-color: #f5f5f5">
+      <!-- <v-layout row wrap justify-center style="background-color: #f5f5f5">
         <v-flex xs2 pt-6>
           <v-select
             v-model="selectedSort"
@@ -12,25 +12,25 @@
             label="Sort by"
           ></v-select>
         </v-flex>
-      </v-layout>
+      </v-layout> -->
 
-      <v-layout row wrap justify-space-around style="background-color: #f5f5f5">
+      <v-layout row wrap justify-space-around pt-12 style="background-color: #f5f5f5">
         <!-- Filters -->
-        <v-flex xs12 md3 pl-12 pr-2 pt-2 pb-8>
+        <v-flex xs12 md3 :class="[windowSize < 2 ? 'px-8 py-4' : 'pl-12 pr-2 pt-2 pb-8']">
           <v-card
             class="mx-auto"
             outlined
           >
             <v-card-title>Accounts</v-card-title>
-            <div class="px-4 py-2">
+            <div class="px-4 pt-2 pb-12">
               <v-btn
                 color="primary"
                 block
                 depressed
-                @click="addAccountDialog = true"
+                @click="addAccount()"
               >+ Add</v-btn>
             </div>
-            <div class="px-4 pt-4">
+            <!-- <div class="px-4 pt-4">
               <v-text-field
                 label="Search"
                 prepend-inner-icon="search"
@@ -39,11 +39,11 @@
                 dense
               >
               </v-text-field>
-            </div>
+            </div> -->
           </v-card>
         </v-flex>
         <!-- Records -->
-        <v-flex xs12 md9 pr-12 pl-2 pt-2 pb-8>
+        <v-flex xs12 md9 :class="[windowSize < 2 ? 'px-8 py-4' : 'pr-12 pl-2 pt-2 pb-8']">
           <v-card
             class="mx-auto"
             outlined
@@ -60,7 +60,7 @@
             <v-list v-if="accounts.length > 0" two-line flat>
               <v-list-item-group multiple>
                 <template v-for="(account, index) in accounts">
-                  <v-list-item :key="account.id">
+                  <v-list-item :key="account.id" @click="editAccount(account)">
                     <v-list-item-avatar class="mr-4">
                       <v-avatar :color="account.color">
                         <v-icon disabled dark>account_balance_wallet</v-icon>
@@ -92,7 +92,7 @@
     <!-- addAccount -->
     <v-dialog v-model="addAccountDialog" max-width="550px">
       <v-card v-if="addAccountDialog">
-        <addAccount></addAccount>
+        <addAccount :account="account"></addAccount>
       </v-card>
     </v-dialog>
   </div>
@@ -143,6 +143,7 @@ export default {
         name: 'AMOUNT RANGE'
       }
     ],
+    account: null,
     accounts: [],
     records: [
       {
@@ -189,9 +190,27 @@ export default {
         totalBalance += account.balance
       })
       return totalBalance
+    },
+    windowSize () {
+      switch (this.$vuetify.breakpoint.name) {
+        case 'xs': return 0
+        case 'sm': return 1
+        case 'md': return 2
+        case 'lg': return 3
+        case 'xl': return 4
+        default: return 0
+      }
     }
   },
   methods: {
+    addAccount () {
+      this.account = null
+      this.addAccountDialog = true
+    },
+    editAccount (account) {
+      this.account = account
+      this.addAccountDialog = true
+    },
     getAccounts () {
       this.isLoading = true
       var options = {
