@@ -29,7 +29,7 @@
           outlined
           height="80"
           href="#"
-          @click="addAccountDialog = true"
+          @click="addAccount"
         >
           <v-card-title class="flex-grow-1 align-center justify-center" style="color: grey">Add Account</v-card-title>
         </v-card>
@@ -187,7 +187,7 @@
     <!-- addAccount -->
     <v-dialog v-model="addAccountDialog" max-width="550px">
       <v-card v-if="addAccountDialog">
-        <addAccount></addAccount>
+        <addAccount :account="account"></addAccount>
       </v-card>
     </v-dialog>
   </div>
@@ -215,6 +215,7 @@ export default {
     addAccountDialog: false,
     isLoadingPie: true,
     isLoadingRadial: true,
+    account: {},
     accounts: [],
     series: [{
       name: 'Desktops',
@@ -315,6 +316,10 @@ export default {
     }
   },
   methods: {
+    addAccount () {
+      this.account = null
+      this.addAccountDialog = true
+    },
     accountActive (account) {
       console.log(this.accounts)
       account.active = false
