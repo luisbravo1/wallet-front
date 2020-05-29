@@ -12,7 +12,8 @@ Vue.use(VueCookies)
 
 Vue.config.productionTip = false
 
-Vue.http.options.root = 'http://localhost:9000/'
+// Vue.http.options.root = 'http://localhost:9000/'
+Vue.http.options.root = 'https://wallet-back-dev.herokuapp.com/'
 Vue.prototype.moment = moment
 
 new Vue({
